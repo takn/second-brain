@@ -1,0 +1,23 @@
+{
+  "name": "second-brain",
+  "private": true,
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "stack:up": "docker compose up -d --wait",
+    "stack:down": "docker compose down",
+    "stack:reset": "docker compose down -v && docker compose up -d --wait && pnpm db:migrate",
+    "db:generate": "pnpm --filter @second-brain/schema generate",
+    "db:migrate": "pnpm --filter @second-brain/schema migrate",
+    "db:seed": "pnpm --filter @second-brain/schema seed",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

@@ -1,0 +1,25 @@
+# Copies the multi-arch MinIO image (genuine MinIO build from the frozen
+# bitnamilegacy archive) into this repo's ghcr namespace so CI and local dev
+# never depend on an upstream registry. Run manually to populate or refresh.
+name: mirror-minio
+
+on:
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ github.repository }}/minio:2025.9-legacy \
+            docker.io/bitnamilegacy/minio:latest
+          docker buildx imagetools inspect ghcr.io/${{ github.repository }}/minio:2025.9-legacy

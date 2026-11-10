@@ -1,0 +1,52 @@
+# Deploys on push to main once AWS is bootstrapped (see infra/README.md):
+# set repository variables AWS_ACCOUNT_ID, AWS_REGION, AWS_ROLE_ARN
+# (terraform output ci_role_arn). Credentials come from GitHub OIDC —
+# no cloud keys stored in GitHub. Migrations run BEFORE the new code
+# deploys, and a migration failure aborts the deploy.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency: production
+
+jobs:
+  deploy:
+    if: vars.AWS_ACCOUNT_ID != ''
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      ECR: ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Login to ECR
+        run: aws ecr get-login-password | docker login --username AWS --password-stdin $ECR
+      - name: Build and push images
+        run: |
+          docker build --provenance=false --sbom=false -f web/Dockerfile -t $ECR/second-brain/web:${GITHUB_SHA::8} -t $ECR/second-brain/web:latest .
+          docker build --provenance=false --sbom=false -f worker/Dockerfile -t $ECR/second-brain/worker:${GITHUB_SHA::8} -t $ECR/second-brain/worker:latest .
+          docker push --all-tags $ECR/second-brain/web
+          docker push --all-tags $ECR/second-brain/worker
+      - name: Run migrations (one-off task; abort deploy on failure)
+        run: |
+          NETCONF=$(aws ecs describe-services --cluster second-brain --services second-brain-worker --query 'services[0].networkConfiguration' --output json)
+          TASK_ARN=$(aws ecs run-task --cluster second-brain \
+            --task-definition second-brain-worker --launch-type FARGATE \
+            --network-configuration "$NETCONF" \
+            --overrides '{"containerOverrides":[{"name":"worker","command":["node","--import","tsx","../packages/schema/src/migrate.ts"]}]}' \
+            --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster second-brain --tasks "$TASK_ARN"
+          EXIT_CODE=$(aws ecs describe-tasks --cluster second-brain --tasks "$TASK_ARN" --query 'tasks[0].containers[0].exitCode' --output text)
+          [ "$EXIT_CODE" = "0" ] || { echo "migration failed (exit $EXIT_CODE) — aborting deploy"; exit 1; }
+      - name: Deploy web and worker
+        run: |
+          SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='second-brain-web'].ServiceArn" --output text)
+          aws apprunner start-deployment --service-arn "$SERVICE_ARN"
+          aws ecs update-service --cluster second-brain --service second-brain-worker --force-new-deployment

@@ -1,0 +1,23 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+node_modules/
+.next/
+dist/
+*.tsbuildinfo
+.turbo/
+
+# Terraform
+infra/.terraform/
+infra/*.tfstate*
+infra/*.tfvars
+!infra/example.tfvars
+
+# Terraform saved plans
+infra/tfplan
+test-data/

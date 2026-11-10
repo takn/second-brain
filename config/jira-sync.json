@@ -1,0 +1,11 @@
+{
+  "$comment": "Jira mirror scope and GitLab→Jira sync mapping. Longest-prefix match on the GitLab path under rootGroup; anything unmatched goes to the catch-all. Replace with your own Jira project keys and GitLab path prefixes.",
+  "rootGroup": "exampleorg",
+  "mirrorProjects": ["PLAT", "OPS"],
+  "syncMappings": [
+    { "gitlabPrefix": "platform", "jiraProject": "PLAT" },
+    { "gitlabPrefix": "operations", "jiraProject": "OPS" }
+  ],
+  "catchAllProject": "PLAT",
+  "syncLabel": "gitlab-sync"
+}

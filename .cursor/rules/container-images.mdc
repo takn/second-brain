@@ -1,0 +1,31 @@
+---
+description: MinIO and other third-party container images — use the repo's ghcr mirror, never upstream
+alwaysApply: true
+---
+
+# Container images: use our mirror, not upstream registries
+
+MinIO's public distribution has vanished twice (Sep 2025: removed from Docker
+Hub; Oct 2026: `quay.io/minio/minio` went 401/private). Every time it happens
+CI breaks and a session gets burned rediscovering it. **Do not point CI or
+docker-compose at any upstream MinIO registry.**
+
+## The rule
+
+- The S3-compatible server for CI and local dev is MinIO pulled from **this
+  repository's ghcr namespace** (anonymous pulls, no login):
+  `ghcr.io/takn/second-brain/minio:<pinned-tag>`
+  (exact tag lives in `docker-compose.yml` and `.github/workflows/ci.yml`
+  under `MINIO_IMAGE`).
+- The image is a mirror of `docker.io/bitnamilegacy/minio` (multi-arch
+  amd64+arm64, genuine MinIO build, frozen archive). Upstream is referenced in
+  exactly one place: the manual `mirror-minio` workflow.
+- To (re)populate or refresh the mirror: run the **mirror-minio** workflow
+  (Actions tab → mirror-minio → Run workflow). It authenticates with the
+  built-in GITHUB_TOKEN; no secrets needed.
+
+## If another third-party base image breaks the same way
+
+Mirror it into the repo's ghcr namespace via a workflow modeled on
+`mirror-minio` and pin the reference. Do not hunt for alternate public
+mirrors each incident — each new upstream is another future breakage.

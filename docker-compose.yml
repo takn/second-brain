@@ -1,0 +1,57 @@
+name: second-brain
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: brain
+      POSTGRES_PASSWORD: brain
+      POSTGRES_DB: brain
+    ports:
+      - "54321:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brain -d brain"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  minio:
+    # Registry mirror of docker.io/bitnamilegacy/minio — upstream MinIO
+    # distribution vanished twice (Docker Hub, then Quay). The mirror lives in
+    # this repo's ghcr namespace (anonymous pulls); refresh it with the
+    # mirror-minio workflow. See .cursor/rules/container-images.mdc.
+    image: ghcr.io/takn/second-brain/minio:2025.9-legacy
+    environment:
+      MINIO_ROOT_USER: brainlocal
+      MINIO_ROOT_PASSWORD: brainlocal
+      # The Bitnami entrypoint pre-creates this bucket; no init tricks needed.
+      MINIO_DEFAULT_BUCKETS: second-brain-raw
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/bitnami/minio/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  elasticmq:
+    image: softwaremill/elasticmq-native:latest
+    ports:
+      - "9324:9324"
+      - "9325:9325"
+    volumes:
+      - ./config/elasticmq.conf:/opt/elasticmq.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:9324/?Action=ListQueues 2>/dev/null | grep -q ListQueues || exit 1"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  pgdata:
+  miniodata:

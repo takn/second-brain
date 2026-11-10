@@ -1,0 +1,32 @@
+{
+  "$comment": "Per-agent Bedrock model tiers and daily budget caps (brain-agents spec: Tiered Bedrock model routing). Model IDs are cross-region inference profiles; verify against `aws bedrock list-inference-profiles` before changing. Pricing is USD per 1K tokens and drifts — it feeds cost *estimates* for budget enforcement, not billing. Exact tier assignments are an open design question; edit here, no code change needed.",
+  "tiers": {
+    "cheap": {
+      "modelId": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "inputUsdPer1k": 0.001,
+      "outputUsdPer1k": 0.005,
+      "defaultMaxTokens": 1024
+    },
+    "mid": {
+      "modelId": "us.anthropic.claude-sonnet-4-6",
+      "inputUsdPer1k": 0.003,
+      "outputUsdPer1k": 0.015,
+      "defaultMaxTokens": 4096
+    },
+    "frontier": {
+      "modelId": "us.anthropic.claude-sonnet-4-6",
+      "inputUsdPer1k": 0.003,
+      "outputUsdPer1k": 0.015,
+      "defaultMaxTokens": 25000
+    }
+  },
+  "agents": {
+    "triage": { "tier": "cheap", "dailyBudgetUsd": 100 },
+    "extractor": { "tier": "mid", "dailyBudgetUsd": 100 },
+    "synthesizer": { "tier": "frontier", "dailyBudgetUsd": 100 },
+    "linter": { "tier": "mid", "dailyBudgetUsd": 100 },
+    "reporter": { "tier": "frontier", "dailyBudgetUsd": 100 },
+    "query": { "tier": "frontier", "dailyBudgetUsd": 100 },
+    "workflow": { "tier": "frontier", "dailyBudgetUsd": 100 }
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "raw_artifacts" ADD COLUMN "normalized_object_key" text;

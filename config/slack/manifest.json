@@ -1,0 +1,38 @@
+{
+  "display_information": {
+    "name": "second-brain",
+    "description": "Second Brain's org brain — reads public channels (and opted-in private ones) to keep project status, decisions, and blockers current.",
+    "background_color": "#1c2126"
+  },
+  "features": {
+    "app_home": {
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": true
+    },
+    "bot_user": {
+      "display_name": "second-brain",
+      "always_online": false
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "channels:read",
+        "channels:history",
+        "channels:join",
+        "groups:read",
+        "groups:history",
+        "users:read",
+        "users:read.email",
+        "team:read",
+        "chat:write",
+        "im:write"
+      ]
+    }
+  },
+  "settings": {
+    "socket_mode_enabled": false,
+    "org_deploy_enabled": true,
+    "token_rotation_enabled": false
+  }
+}

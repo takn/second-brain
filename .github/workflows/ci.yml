@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  # MinIO comes from this repo's ghcr mirror — upstream MinIO distribution has
+  # vanished from public registries twice. Populate/refresh via the
+  # mirror-minio workflow. See .cursor/rules/container-images.mdc.
+  MINIO_IMAGE: ghcr.io/takn/second-brain/minio:2025.9-legacy
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: brain
+          POSTGRES_PASSWORD: brain
+          POSTGRES_DB: brain
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U brain -d brain"
+          --health-interval 2s --health-timeout 3s --health-retries 15
+      minio:
+        image: ghcr.io/takn/second-brain/minio:2025.9-legacy
+        env:
+          MINIO_ROOT_USER: brainlocal
+          MINIO_ROOT_PASSWORD: brainlocal
+          MINIO_DEFAULT_BUCKETS: second-brain-raw
+        ports: ["9000:9000"]
+      elasticmq:
+        image: softwaremill/elasticmq-native:latest
+        ports: ["9324:9324"]
+    env:
+      TEST_DATABASE_URL: postgres://brain:brain@localhost:5432/brain
+      TEST_S3_ENDPOINT: http://localhost:9000
+      TEST_SQS_ENDPOINT: http://localhost:9324
+      AWS_ACCESS_KEY_ID: brainlocal
+      AWS_SECRET_ACCESS_KEY: brainlocal
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - run: npm install -g pnpm@11
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm --filter web build
